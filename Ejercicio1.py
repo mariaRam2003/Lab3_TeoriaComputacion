@@ -1,75 +1,36 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 
-# Función que obtiene la precedencia de un operador
-def getPrecedence(c):
-    precedences = {
-        '(': 1,
-        '|': 2,
-        '.': 3,
-        '?': 4,
-        '*': 4,
-        '+': 4,
-        '^': 5
+# Función que convierte una expresión regular de notación infix a notación postfix usando Shunting Yard
+def infixToPostfix(expression):
+    operators = {
+        '+': 1,
+        '-': 1,
+        '*': 2,
+        '/': 2,
+        '^': 3
     }
-    return precedences.get(c, 0)
+    stack_operators = []
+    output = []
 
+    for token in expression:
+        if token.isdigit():
+            output.append(token)
+        elif token == '(':
+            stack_operators.append(token)
+        elif token == ')':
+            while stack_operators and stack_operators[-1] != '(':
+                output.append(stack_operators.pop())
+            stack_operators.pop()  # Discard the opening parenthesis
+        else:
+            while stack_operators and operators.get(token, 0) <= operators.get(stack_operators[-1], 0):
+                output.append(stack_operators.pop())
+            stack_operators.append(token)
 
-# Función que formatea la expresión regular para agregar concatenación explícita donde sea necesario
-def formatRegEx(regex):
-    allOperators = ['|', '?', '+', '*', '^']
-    binaryOperators = ['^', '|']
+    while stack_operators:
+        output.append(stack_operators.pop())
 
-    res = ''
-    for i in range(len(regex)):
-        c1 = regex[i]
-
-        # Verifica si hay otro carácter después de c1
-        if i + 1 < len(regex):
-            c2 = regex[i + 1]
-
-            # Concatena c1 con el resultado, pero solo si c1 y c2 no son operadores válidos
-            if c1 not in allOperators and c2 not in allOperators and c1 not in binaryOperators:
-                res += c1
-
-        # Concatena el último carácter de regex a res
-        if c1 not in allOperators and c1 not in binaryOperators:
-            res += c1
-
-    return res
-
-
-
-# Función que convierte una expresión regular de notación infix a notación postfix
-def infixToPostfix(regex):
-    postfix = ''  # Inicializa la notación postfix
-    stack = []    # Inicializa la pila para los operadores
-    formattedRegEx = formatRegEx(regex)  # Formatea la expresión regular
-
-    # Recorre cada carácter en la expresión formateada
-    for c in formattedRegEx:
-        if c == '(':  # Si es paréntesis de apertura, lo agrega a la pila
-            stack.append(c)
-        elif c == ')':  # Si es paréntesis de cierre, saca operadores de la pila hasta encontrar el paréntesis de apertura correspondiente
-            while stack and stack[-1] != '(':
-                postfix += stack.pop()
-
-            # Elimina el paréntesis de apertura de la pila
-            if stack and stack[-1] == '(':
-                stack.pop()
-        else:  # Si es operador
-            # Saca operadores de la pila y los agrega a postfix mientras la pila no esté vacía y el operador en la cima tenga mayor o igual precedencia
-            while stack and getPrecedence(stack[-1]) >= getPrecedence(c):
-                postfix += stack.pop()
-
-            # Agrega el operador actual a la pila
-            stack.append(c)
-
-    # Saca los operadores restantes de la pila y los agrega a postfix
-    while stack:
-        postfix += stack.pop()
-
-    return postfix
+    return output
 
 # Definición de la clase Nodo para el árbol sintáctico
 class Node:
@@ -124,13 +85,12 @@ def main():
     with open("expresiones.txt", "r", encoding='utf-8') as file:
         expressions = file.readlines()
 
-    # Procesa cada expresión regular en la lista expressions
+    # Process each infix expression in the list expressions
     for i, expression in enumerate(expressions, start=1):
-        expression = expression.strip()  # Elimina el salto de línea al final de la expresión
-        postfix_expr = infixToPostfix(expression)  # Convierte la expresión a notación postfix
-        print(f"Expresión {i}:")
-        print("Infix:", expression)
-        print("Postfix:", postfix_expr)
+        # Split the infix expression into tokens (space-separated) before passing it to the function
+        infix_tokens = expression.split()
+        postfix_expression = infixToPostfix(infix_tokens)
+        print(f"Expression {i}: {' '.join(postfix_expression)}")
 
         #syntax_tree = buildSyntaxTree(postfix_expr)  # Construye el árbol sintáctico
         #graph = nx.DiGraph()  # Crea un nuevo grafo dirigido
@@ -143,7 +103,7 @@ def main():
         #plt.title(f"Árbol sintáctico - Expresión {i}")
         #plt.show()
 
-        print("--------------------")
+        print("--------------------------")
 
 
 if __name__ == "__main__":
